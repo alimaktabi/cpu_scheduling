@@ -1,19 +1,20 @@
-import { CPU } from "./cpu";
+import { CPU } from "./cpu"
 
 export interface Task {
-  processId: number | string;
-  arraivalTime: number;
-  cpuTime1: number;
-  ioTime: number;
-  cpuTime2: number;
+  processId: number | string
+  arraivalTime: number
+  cpuTime1: number
+  ioTime: number
+  cpuTime2: number
+  queue?: number
 }
 
 export abstract class BaseAlgorithm {
   public get availableTasks(): Task[] {
-    return this.cpu.arraivalTasks;
+    return this.cpu.arraivalTasks
   }
 
   constructor(protected cpu: CPU) {}
 
-  public abstract choose(): Task;
+  public abstract choose(): Task
 }

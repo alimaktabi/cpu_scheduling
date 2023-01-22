@@ -28,30 +28,27 @@ function runMiddleware(
   })
 }
 
-export class RoundRubinAlgorithm extends BaseAlgorithm {
-  private numberOfRuns = 0
+export class ShortestJobFirstAlgorithm extends BaseAlgorithm {
   private previousTask: Task | null = null
 
-  constructor(cpu: CPU, private period: number) {
-    super(cpu)
-  }
-
   public choose(): Task {
-    if (this.previousTask != this.availableTasks[0]) this.numberOfRuns = 0
-    this.swapTasks()
-    this.numberOfRuns++
-    this.previousTask = this.availableTasks[0]
-    return this.availableTasks[0]
-  }
+    if (this.previousTask && this.availableTasks.includes(this.previousTask)) {
+      return this.previousTask
+    }
 
-  private swapTasks(): void {
-    if (this.numberOfRuns !== this.period) return
+    let lowest: Task = this.availableTasks[0]
 
-    this.numberOfRuns = 0
+    this.availableTasks.forEach((element) => {
+      if (
+        element[this.cpu.getJobProcessTimeKey(element)] <
+        lowest[this.cpu.getJobProcessTimeKey(lowest)]
+      )
+        lowest = element
+    })
 
-    const item = this.availableTasks.shift()
-    if (!item) throw new Error("availableTasks where empty!")
-    this.availableTasks.push(item)
+    this.previousTask = lowest
+
+    return lowest
   }
 }
 
@@ -63,7 +60,7 @@ const handler = async (
 
   const cpu = new CPU(null as any)
 
-  cpu.algorithm = new RoundRubinAlgorithm(cpu, Number(req.body.period))
+  cpu.algorithm = new ShortestJobFirstAlgorithm(cpu)
 
   await cpu.readFromCsvFile(req.file)
 

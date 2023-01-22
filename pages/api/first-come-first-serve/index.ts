@@ -28,30 +28,9 @@ function runMiddleware(
   })
 }
 
-export class RoundRubinAlgorithm extends BaseAlgorithm {
-  private numberOfRuns = 0
-  private previousTask: Task | null = null
-
-  constructor(cpu: CPU, private period: number) {
-    super(cpu)
-  }
-
+export class FirstComeFirstServeAlgorithm extends BaseAlgorithm {
   public choose(): Task {
-    if (this.previousTask != this.availableTasks[0]) this.numberOfRuns = 0
-    this.swapTasks()
-    this.numberOfRuns++
-    this.previousTask = this.availableTasks[0]
     return this.availableTasks[0]
-  }
-
-  private swapTasks(): void {
-    if (this.numberOfRuns !== this.period) return
-
-    this.numberOfRuns = 0
-
-    const item = this.availableTasks.shift()
-    if (!item) throw new Error("availableTasks where empty!")
-    this.availableTasks.push(item)
   }
 }
 
@@ -63,7 +42,7 @@ const handler = async (
 
   const cpu = new CPU(null as any)
 
-  cpu.algorithm = new RoundRubinAlgorithm(cpu, Number(req.body.period))
+  cpu.algorithm = new FirstComeFirstServeAlgorithm(cpu)
 
   await cpu.readFromCsvFile(req.file)
 
