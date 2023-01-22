@@ -8,7 +8,7 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <Flowbite>
       <Header />
-      <main className="min-h-screen">
+      <main className="min-h-screen dark:bg-gray-700">
         <Component {...pageProps} />
       </main>
       <FooterComponent />

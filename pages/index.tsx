@@ -10,11 +10,26 @@ import {
 } from "flowbite-react"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
+import { LoggedValue } from "../algorithms/cpu"
+
+export type ResponseType = {
+  averageResponseTime: number
+  totalTime: number
+  utilization: number
+  averageWaittingTime: number
+  loggedValues: LoggedValue[]
+}
 
 export default function Home() {
   const [loading, setLoading] = useState(false)
 
-  const [result, setResult] = useState([])
+  const [result, setResult] = useState<ResponseType>({
+    averageResponseTime: 0,
+    averageWaittingTime: 0,
+    loggedValues: [],
+    utilization: 0,
+    totalTime: 0,
+  })
 
   const [algorithm, setAlgorithm] = useState("")
 
@@ -37,7 +52,7 @@ export default function Home() {
     setLoading(true)
 
     axios
-      .post("/api/" + data.method, formData, {
+      .post<ResponseType>("/api/" + data.method, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -53,7 +68,7 @@ export default function Home() {
 
   return (
     <div className="container mx-auto">
-      <Card className="mt-64 p-5">
+      <Card className="mt-20 p-5">
         <div className="">
           <form onSubmit={handleSubmit(onSubmit)} method="POST">
             <div className="grid gap-5 grid-cols-2">
@@ -80,7 +95,6 @@ export default function Home() {
                   <Label value="Period Time" />
                   <TextInput
                     type="number"
-                    className="ml-5"
                     required
                     placeholder="period (microseconds)"
                     key={1}
@@ -93,7 +107,6 @@ export default function Home() {
                   <Label value="Queues timers" />
                   <TextInput
                     key={2}
-                    className="ml-5"
                     required
                     placeholder="queues timer sceprated by comma"
                     {...register("queuesTime")}
@@ -114,28 +127,38 @@ export default function Home() {
           </form>
         </div>
       </Card>
-
-      {!!result.length && (
-        <Card className="my-10">
-          <h3>Algorithm Result</h3>
-          <strong>{algorithm}</strong>
-          <Table>
-            <Table.Head>
-              <Table.HeadCell>Process Id</Table.HeadCell>
-              <Table.HeadCell>From</Table.HeadCell>
-              <Table.HeadCell>To</Table.HeadCell>
-            </Table.Head>
-            <Table.Body>
-              {result.map((item: any, index) => (
-                <Table.Row key={index}>
-                  <Table.Cell>{item.processId}</Table.Cell>
-                  <Table.Cell className="font-bold">{item.from}</Table.Cell>
-                  <Table.Cell className="font-bold">{item.to}</Table.Cell>
-                </Table.Row>
-              ))}
-            </Table.Body>
-          </Table>
-        </Card>
+      {!!result.totalTime && (
+        <>
+          <Card className="my-10">
+            <h3 className="dark:text-gray-300">Algorithm Result</h3>
+            <strong className="dark:text-gray-300">{algorithm}</strong>
+            <Table>
+              <Table.Head>
+                <Table.HeadCell>Process Id</Table.HeadCell>
+                <Table.HeadCell>From</Table.HeadCell>
+                <Table.HeadCell>To</Table.HeadCell>
+              </Table.Head>
+              <Table.Body>
+                {result.loggedValues.map((item, index) => (
+                  <Table.Row key={index}>
+                    <Table.Cell>{item.processId}</Table.Cell>
+                    <Table.Cell className="font-bold">{item.from}</Table.Cell>
+                    <Table.Cell className="font-bold">{item.to}</Table.Cell>
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table>
+          </Card>
+          <Card className="my-10 dark:text-gray-300">
+            <h3 className="font-bold">🛑Analyzing the Processes</h3>
+            <div className="mt-5">
+              <p>Average Response Time: {result.averageResponseTime}</p>
+              <p>Average Waitting Time: {result.averageWaittingTime}</p>
+              <p>CPU Utilization: {result.utilization}</p>
+              <p>Total Execution Time: {result.totalTime}</p>
+            </div>
+          </Card>
+        </>
       )}
     </div>
   )

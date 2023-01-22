@@ -1,4 +1,4 @@
-import { Navbar } from "flowbite-react"
+import { DarkThemeToggle, Navbar } from "flowbite-react"
 
 const Header = () => {
   return (
@@ -13,6 +13,10 @@ const Header = () => {
           CPU Scheduling Project
         </span>
       </Navbar.Brand>
+      <Navbar.Toggle />
+      <Navbar.Collapse>
+        <DarkThemeToggle />
+      </Navbar.Collapse>
     </Navbar>
   )
 }

@@ -1,6 +1,61 @@
 import { parseString } from "fast-csv"
 import { BaseAlgorithm, Task } from "./base"
 
+const calculateUtilization = (data: LoggedValue[]) => {
+  let idleTime = 0
+  let totalTime = 0
+
+  data.forEach((item: any) => {
+    if (item.processId === "idle") {
+      idleTime += item.to - item.from
+    }
+
+    totalTime += item.to - item.from
+  })
+
+  return { res: (totalTime - idleTime) / totalTime, idleTime, totalTime }
+}
+
+export type LoggedValue = {
+  from: number
+  to: number
+  processId: number | string
+}
+
+const calculateResponseTimes = (data: LoggedValue[]) => {
+  const values: { [key: string | number]: number } = {}
+
+  data.forEach((item) => {
+    if (!values[item.processId]) {
+      values[item.processId] = item.from
+    }
+  })
+
+  return values
+}
+
+const calculateWaittingTimes = (data: LoggedValue[]) => {
+  const res: { [key: string | number]: { start: number; end: number } } = {}
+
+  data.forEach((item) => {
+    if (!res[item.processId]) {
+      res[item.processId] = { start: item.from, end: item.to }
+    }
+
+    res[item.processId].end = item.to
+  })
+}
+
+const caluclateFormulas = (data: LoggedValue[]) => {
+  const { res: utilization, idleTime, totalTime } = calculateUtilization(data)
+  return {
+    utilization,
+    idleTime,
+    totalTime,
+    responseTimes: calculateResponseTimes(data),
+  }
+}
+
 export class CPU {
   public allTasks: Task[] = []
 
@@ -10,11 +65,11 @@ export class CPU {
 
   public finishedTasks: Task[] = []
 
-  private loggedValues: {
-    from: number
-    to: number
-    processId: number | string
-  }[] = []
+  private loggedValues: LoggedValue[] = []
+
+  private resultProcesses: {
+    [key: number | string]: { waittingTime: number }
+  } = {}
 
   private _upTime = 0
 
@@ -34,14 +89,30 @@ export class CPU {
       if (this.arraivalTasks.length) {
         const task = this.algorithm.choose()
         this.processMicroSecond(task)
+        this.analyzeTasks(task)
       } else {
         this.processMicroSecond(undefined)
+        this.analyzeTasks(undefined)
       }
 
       this.postFinishedJobs()
     }
 
-    return this.loggedValues
+    return this.calculatePerformance()
+  }
+
+  public analyzeTasks(task: undefined | Task) {
+    this.arraivalTasks.forEach((item) => {
+      if (item === task) return
+
+      if (!this.resultProcesses[item.processId]) {
+        this.resultProcesses[item.processId] = {
+          waittingTime: 0,
+        }
+      }
+
+      this.resultProcesses[item.processId].waittingTime++
+    })
   }
 
   public readFromCsvFile(file: { buffer: Buffer }) {
@@ -64,6 +135,28 @@ export class CPU {
 
   public getJobProcessTimeKey(task: Task): "cpuTime1" | "cpuTime2" {
     return task.cpuTime1 <= 0 ? "cpuTime2" : "cpuTime1"
+  }
+
+  private calculatePerformance() {
+    const res = caluclateFormulas(this.loggedValues)
+
+    const responseTimes = Object.values(res.responseTimes)
+
+    const resultProcesses = Object.values(this.resultProcesses)
+
+    return {
+      averageResponseTime:
+        responseTimes.reduce((partialSum, a) => partialSum + a, 0) /
+        responseTimes.length,
+      totalTime: res.totalTime,
+      utilization: res.utilization,
+      averageWaittingTime:
+        resultProcesses.reduce(
+          (partialSum, a) => partialSum + a.waittingTime,
+          0
+        ) / responseTimes.length,
+      loggedValues: this.loggedValues,
+    }
   }
 
   private postFinishedJobs(): void {
