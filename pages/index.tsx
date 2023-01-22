@@ -71,7 +71,7 @@ export default function Home() {
       <Card className="mt-20 p-5">
         <div className="">
           <form onSubmit={handleSubmit(onSubmit)} method="POST">
-            <div className="grid gap-5 grid-cols-2">
+            <div className="grid gap-5 grid-cols-1 md:grid-cols-2">
               <div>
                 <Label value="Csv input file" />
                 <FileInput required {...register("file")} />
