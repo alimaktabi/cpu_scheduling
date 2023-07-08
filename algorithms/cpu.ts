@@ -22,6 +22,12 @@ export type LoggedValue = {
   processId: number | string
 }
 
+export type GuiLoggedValue = {
+  text: string
+  processId: number
+  stateKey: string
+}
+
 const calculateResponseTimes = (data: LoggedValue[]) => {
   const values: { [key: string | number]: number } = {}
 
@@ -34,7 +40,7 @@ const calculateResponseTimes = (data: LoggedValue[]) => {
   return values
 }
 
-const calculateWaittingTimes = (data: LoggedValue[]) => {
+const calculateWaitingTimes = (data: LoggedValue[]) => {
   const res: { [key: string | number]: { start: number; end: number } } = {}
 
   data.forEach((item) => {
@@ -46,7 +52,7 @@ const calculateWaittingTimes = (data: LoggedValue[]) => {
   })
 }
 
-const caluclateFormulas = (data: LoggedValue[]) => {
+const calculateFormulas = (data: LoggedValue[]) => {
   const { res: utilization, idleTime, totalTime } = calculateUtilization(data)
   return {
     utilization,
@@ -56,19 +62,19 @@ const caluclateFormulas = (data: LoggedValue[]) => {
   }
 }
 
-export class CPU {
+export class Scheduler {
   public allTasks: Task[] = []
 
-  public ioTasks: Task[] = []
+  public waitingStateList: Task[] = []
 
-  public arraivalTasks: Task[] = []
+  public newStateList: Task[] = []
 
-  public finishedTasks: Task[] = []
+  public terminatedStateList: Task[] = []
 
   private loggedValues: LoggedValue[] = []
 
   private resultProcesses: {
-    [key: number | string]: { waittingTime: number }
+    [key: number | string]: { waitingTime: number }
   } = {}
 
   private _upTime = 0
@@ -82,12 +88,12 @@ export class CPU {
   public run() {
     while (
       this.allTasks.length ||
-      this.ioTasks.length ||
-      this.arraivalTasks.length
+      this.waitingStateList.length ||
+      this.newStateList.length
     ) {
-      this.bringNewProcesses()
-      if (this.arraivalTasks.length) {
-        const task = this.algorithm.choose()
+      this.admitNewProcesses()
+      if (this.newStateList.length) {
+        const task = this.algorithm.dispatch()
         this.processMicroSecond(task)
         this.analyzeTasks(task)
       } else {
@@ -95,23 +101,23 @@ export class CPU {
         this.analyzeTasks(undefined)
       }
 
-      this.postFinishedJobs()
+      this.terminateFinishedJobs()
     }
 
     return this.calculatePerformance()
   }
 
   public analyzeTasks(task: undefined | Task) {
-    this.arraivalTasks.forEach((item) => {
+    this.newStateList.forEach((item) => {
       if (item === task) return
 
       if (!this.resultProcesses[item.processId]) {
         this.resultProcesses[item.processId] = {
-          waittingTime: 0,
+          waitingTime: 0,
         }
       }
 
-      this.resultProcesses[item.processId].waittingTime++
+      this.resultProcesses[item.processId].waitingTime++
     })
   }
 
@@ -138,7 +144,7 @@ export class CPU {
   }
 
   private calculatePerformance() {
-    const res = caluclateFormulas(this.loggedValues)
+    const res = calculateFormulas(this.loggedValues)
 
     const responseTimes = Object.values(res.responseTimes)
 
@@ -150,20 +156,20 @@ export class CPU {
         responseTimes.length,
       totalTime: res.totalTime,
       utilization: res.utilization,
-      averageWaittingTime:
+      averageWaitingTime:
         resultProcesses.reduce(
-          (partialSum, a) => partialSum + a.waittingTime,
+          (partialSum, a) => partialSum + a.waitingTime,
           0
         ) / responseTimes.length,
       loggedValues: this.loggedValues,
     }
   }
 
-  private postFinishedJobs(): void {
+  private terminateFinishedJobs(): void {
     const indexesToBeRemoved: number[] = []
     const indexesForIo: number[] = []
 
-    this.arraivalTasks.forEach((item, index) => {
+    this.newStateList.forEach((item, index) => {
       if (this.isFinishedAndhasIo(item)) {
         indexesForIo.push(index)
       }
@@ -174,19 +180,19 @@ export class CPU {
     })
 
     indexesToBeRemoved.forEach((index, offset) => {
-      const item = this.arraivalTasks[index - offset]
-      this.arraivalTasks.splice(index - offset, 1)
-      this.finishedTasks.push(item)
+      const item = this.newStateList[index - offset]
+      this.newStateList.splice(index - offset, 1)
+      this.terminatedStateList.push(item)
     })
 
     indexesForIo.forEach((index, offset) => {
-      const item = this.arraivalTasks[index - offset]
-      this.arraivalTasks.splice(index - offset, 1)
-      this.ioTasks.push(item)
+      const item = this.newStateList[index - offset]
+      this.newStateList.splice(index - offset, 1)
+      this.waitingStateList.push(item)
     })
   }
 
-  private bringNewProcesses() {
+  private admitNewProcesses() {
     if (this.upTime === 100) {
       console.log(this.loggedValues)
       throw new Error("this ")
@@ -194,12 +200,12 @@ export class CPU {
 
     this.removeFromAndAdd(
       this.allTasks,
-      this.arraivalTasks,
+      this.newStateList,
       this.upTime,
-      "arraivalTime"
+      "arrivalTime"
     )
 
-    this.removeFromAndAdd(this.ioTasks, this.arraivalTasks, 0, "ioTime")
+    this.removeFromAndAdd(this.waitingStateList, this.newStateList, 0, "ioTime")
   }
 
   private removeFromAndAdd(
@@ -230,7 +236,7 @@ export class CPU {
     if (task === undefined) {
       this.logTask({
         processId: "idle",
-        arraivalTime: 0,
+        arrivalTime: 0,
         ioTime: 0,
         cpuTime1: 0,
         cpuTime2: 0,
@@ -240,7 +246,7 @@ export class CPU {
       this.logTask(task)
     }
 
-    this.ioTasks.forEach((item) => {
+    this.waitingStateList.forEach((item) => {
       item.ioTime -= 1
     })
   }
@@ -289,7 +295,7 @@ export class CPU {
     for (const row of tasks.slice(1)) {
       res.push(<Task>{
         processId: parseInt(row[taskKeys.process_id]),
-        arraivalTime: parseInt(row[taskKeys.arrival_time]),
+        arrivalTime: parseInt(row[taskKeys.arrival_time]),
         cpuTime1: parseInt(row[taskKeys.cpu_time1]),
         ioTime: parseInt(row[taskKeys.io_time]),
         cpuTime2: parseInt(row[taskKeys.cpu_time2]),

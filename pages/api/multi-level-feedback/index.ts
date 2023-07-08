@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next"
 import multer from "multer"
-import { CPU } from "../../../algorithms/cpu"
+import { Scheduler } from "../../../algorithms/cpu"
 import { BaseAlgorithm, Task } from "../../../algorithms/base"
 
 export const config = {
@@ -31,11 +31,11 @@ export class MultiLevelFeedbackAlgorithm extends BaseAlgorithm {
   private previousTask: Task | null = null
   private numberOfRuns = 0
 
-  constructor(cpu: CPU, private queuesTime: number[]) {
+  constructor(cpu: Scheduler, private queuesTime: number[]) {
     super(cpu)
   }
 
-  public choose(): Task {
+  public dispatch(): Task {
     if (!this.availableTasks[0].queue) {
       this.availableTasks[0].queue = 1
     }
@@ -83,7 +83,7 @@ const handler = async (
 ): Promise<void> => {
   await runMiddleware(req, res, uploads.single("file"))
 
-  const cpu = new CPU(null as any)
+  const cpu = new Scheduler(null as any)
 
   const queuesTime = (<string>req.body.queuesTime).split(",")
 

@@ -1,8 +1,8 @@
-import { CPU } from "./cpu"
+import { Scheduler } from "./cpu"
 
 export interface Task {
   processId: number | string
-  arraivalTime: number
+  arrivalTime: number
   cpuTime1: number
   ioTime: number
   cpuTime2: number
@@ -11,10 +11,10 @@ export interface Task {
 
 export abstract class BaseAlgorithm {
   public get availableTasks(): Task[] {
-    return this.cpu.arraivalTasks
+    return this.cpu.newStateList
   }
 
-  constructor(protected cpu: CPU) {}
+  constructor(protected cpu: Scheduler) {}
 
-  public abstract choose(): Task
+  public abstract dispatch(): Task
 }

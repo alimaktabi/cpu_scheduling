@@ -16,7 +16,7 @@ export type ResponseType = {
   averageResponseTime: number
   totalTime: number
   utilization: number
-  averageWaittingTime: number
+  averageWaitingTime: number
   loggedValues: LoggedValue[]
 }
 
@@ -25,7 +25,7 @@ export default function Home() {
 
   const [result, setResult] = useState<ResponseType>({
     averageResponseTime: 0,
-    averageWaittingTime: 0,
+    averageWaitingTime: 0,
     loggedValues: [],
     utilization: 0,
     totalTime: 0,
@@ -153,7 +153,7 @@ export default function Home() {
             <h3 className="font-bold">🛑Analyzing the Processes</h3>
             <div className="mt-5">
               <p>Average Response Time: {result.averageResponseTime}</p>
-              <p>Average Waitting Time: {result.averageWaittingTime}</p>
+              <p>Average Waitting Time: {result.averageWaitingTime}</p>
               <p>CPU Utilization: {result.utilization}</p>
               <p>Total Execution Time: {result.totalTime}</p>
             </div>

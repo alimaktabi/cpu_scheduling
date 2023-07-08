@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next"
 import multer from "multer"
 import { parseString } from "fast-csv"
-import { CPU } from "../../../algorithms/cpu"
+import { Scheduler } from "../../../algorithms/cpu"
 import { BaseAlgorithm, Task } from "../../../algorithms/base"
 
 export const config = {
@@ -31,7 +31,7 @@ function runMiddleware(
 export class ShortestJobFirstAlgorithm extends BaseAlgorithm {
   private previousTask: Task | null = null
 
-  public choose(): Task {
+  public dispatch(): Task {
     if (this.previousTask && this.availableTasks.includes(this.previousTask)) {
       return this.previousTask
     }
@@ -58,7 +58,7 @@ const handler = async (
 ): Promise<void> => {
   await runMiddleware(req, res, uploads.single("file"))
 
-  const cpu = new CPU(null as any)
+  const cpu = new Scheduler(null as any)
 
   cpu.algorithm = new ShortestJobFirstAlgorithm(cpu)
 

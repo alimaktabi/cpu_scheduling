@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next"
 import multer from "multer"
 import { parseString } from "fast-csv"
-import { CPU } from "../../../algorithms/cpu"
+import { Scheduler } from "../../../algorithms/cpu"
 import { BaseAlgorithm, Task } from "../../../algorithms/base"
 
 export const config = {
@@ -32,11 +32,11 @@ export class RoundRubinAlgorithm extends BaseAlgorithm {
   private numberOfRuns = 0
   private previousTask: Task | null = null
 
-  constructor(cpu: CPU, private period: number) {
+  constructor(cpu: Scheduler, private period: number) {
     super(cpu)
   }
 
-  public choose(): Task {
+  public dispatch(): Task {
     if (this.previousTask != this.availableTasks[0]) this.numberOfRuns = 0
     this.swapTasks()
     this.numberOfRuns++
@@ -61,7 +61,7 @@ const handler = async (
 ): Promise<void> => {
   await runMiddleware(req, res, uploads.single("file"))
 
-  const cpu = new CPU(null as any)
+  const cpu = new Scheduler(null as any)
 
   cpu.algorithm = new RoundRubinAlgorithm(cpu, Number(req.body.period))
 
