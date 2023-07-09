@@ -196,8 +196,8 @@ export default function Home() {
                     <div className="mt-5">
                       {result.events
                         .filter((key) => key.time === timerValue)
-                        .map((event) => (
-                          <div className="flex items-center">
+                        .map((event, key) => (
+                          <div key={key} className="flex items-center">
                             <span className="ml-3">
                               {!!event.task && "Process: "}
                               {event.task?.processId}
