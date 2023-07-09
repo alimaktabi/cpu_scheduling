@@ -12,6 +12,15 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { Task } from "../algorithms/base"
 import { LoggedValue } from "../algorithms/cpu"
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from "recharts"
 
 export type ResponseType = {
   averageResponseTime: number
@@ -206,7 +215,17 @@ export default function Home() {
           </Card>
           <Card className="my-10">
             <h3 className="dark:text-gray-300">Algorithm Summary</h3>
-            <div className="mt-4"></div>
+            <div className="mt-4">
+              <LineChart width={500} height={300} data={result.loggedValues}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="to" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                {/* <Line type="monotone" dataKey="from" stroke="#8884d8" /> */}
+                <Line type="monotone" dataKey="processId" stroke="#82ca9d" />
+              </LineChart>
+            </div>
           </Card>
           <Card className="my-10 dark:text-gray-300">
             <h3 className="font-bold">🛑Analyzing the Processes</h3>
