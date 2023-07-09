@@ -6,7 +6,7 @@ const FooterComponent = () => {
       <Footer.Copyright by="Cpu scheduling" year={2022} />
       <Footer.LinkGroup>
         <Footer.Link href="#">
-          Created by: "Ali Maktabi & Sina Amini"
+          Created by: "Ali Maktabi & Mohammad Zarei"
         </Footer.Link>
       </Footer.LinkGroup>
     </Footer>

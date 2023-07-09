@@ -22,12 +22,6 @@ export type LoggedValue = {
   processId: number | string
 }
 
-export type GuiLoggedValue = {
-  text: string
-  processId: number
-  stateKey: string
-}
-
 const calculateResponseTimes = (data: LoggedValue[]) => {
   const values: { [key: string | number]: number } = {}
 
@@ -52,6 +46,11 @@ const calculateWaitingTimes = (data: LoggedValue[]) => {
   })
 }
 
+const mapToKey = {
+  arrivalTime: "start",
+  ioTime: "start-io",
+}
+
 const calculateFormulas = (data: LoggedValue[]) => {
   const { res: utilization, idleTime, totalTime } = calculateUtilization(data)
   return {
@@ -73,6 +72,10 @@ export class Scheduler {
 
   private loggedValues: LoggedValue[] = []
 
+  private events: { eventName: string; task: Task | null; time: number }[] = []
+
+  private tasksList: string[] = []
+
   private resultProcesses: {
     [key: number | string]: { waitingTime: number }
   } = {}
@@ -92,11 +95,20 @@ export class Scheduler {
       this.newStateList.length
     ) {
       this.admitNewProcesses()
+      this.tasksList.push(
+        JSON.stringify({
+          terminatedStateList: this.terminatedStateList,
+          waitingStateList: this.waitingStateList,
+          newStateList: this.newStateList,
+        })
+      )
       if (this.newStateList.length) {
         const task = this.algorithm.dispatch()
+        this.events.push({ eventName: "mine", task, time: this._upTime })
         this.processMicroSecond(task)
         this.analyzeTasks(task)
       } else {
+        this.events.push({ eventName: "idle", task: null, time: this._upTime })
         this.processMicroSecond(undefined)
         this.analyzeTasks(undefined)
       }
@@ -162,6 +174,8 @@ export class Scheduler {
           0
         ) / responseTimes.length,
       loggedValues: this.loggedValues,
+      events: this.events,
+      tasksList: this.tasksList,
     }
   }
 
@@ -171,10 +185,16 @@ export class Scheduler {
 
     this.newStateList.forEach((item, index) => {
       if (this.isFinishedAndhasIo(item)) {
+        this.events.push({ eventName: "io", task: item, time: this._upTime })
         indexesForIo.push(index)
       }
 
       if (this.isFinished(item)) {
+        this.events.push({
+          eventName: "finished",
+          task: item,
+          time: this._upTime,
+        })
         indexesToBeRemoved.push(index)
       }
     })
@@ -193,7 +213,7 @@ export class Scheduler {
   }
 
   private admitNewProcesses() {
-    if (this.upTime === 100) {
+    if (this.upTime === 300) {
       console.log(this.loggedValues)
       throw new Error("this ")
     }
@@ -219,6 +239,8 @@ export class Scheduler {
     array.forEach((item, index) => {
       if ((item as any)[key] === value) {
         indexesToBeRemoved.push(index)
+
+        this.events.push({ eventName: key, task: item, time: this._upTime })
       }
     })
 

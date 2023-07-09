@@ -10,6 +10,7 @@ import {
 } from "flowbite-react"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
+import { Task } from "../algorithms/base"
 import { LoggedValue } from "../algorithms/cpu"
 
 export type ResponseType = {
@@ -18,10 +19,23 @@ export type ResponseType = {
   utilization: number
   averageWaitingTime: number
   loggedValues: LoggedValue[]
+  events: { eventName: string; task: Task | null; time: number }[]
+  tasksList: string[]
+}
+
+const objColors = {
+  idle: "the cpu was idle as there were no jobs available",
+  arrivalTime: "has arrived",
+  mine: "is executing",
+  io: "is going to io",
+  ioTime: "is coming back from io",
+  finished: "is finished",
 }
 
 export default function Home() {
   const [loading, setLoading] = useState(false)
+
+  const [timerValue, setTimerValue] = useState(0)
 
   const [result, setResult] = useState<ResponseType>({
     averageResponseTime: 0,
@@ -29,6 +43,8 @@ export default function Home() {
     loggedValues: [],
     utilization: 0,
     totalTime: 0,
+    events: [],
+    tasksList: [],
   })
 
   const [algorithm, setAlgorithm] = useState("")
@@ -132,22 +148,65 @@ export default function Home() {
           <Card className="my-10">
             <h3 className="dark:text-gray-300">Algorithm Result</h3>
             <strong className="dark:text-gray-300">{algorithm}</strong>
-            <Table>
-              <Table.Head>
-                <Table.HeadCell>Process Id</Table.HeadCell>
-                <Table.HeadCell>From</Table.HeadCell>
-                <Table.HeadCell>To</Table.HeadCell>
-              </Table.Head>
-              <Table.Body>
-                {result.loggedValues.map((item, index) => (
-                  <Table.Row key={index}>
-                    <Table.Cell>{item.processId}</Table.Cell>
-                    <Table.Cell className="font-bold">{item.from}</Table.Cell>
-                    <Table.Cell className="font-bold">{item.to}</Table.Cell>
-                  </Table.Row>
-                ))}
-              </Table.Body>
-            </Table>
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <Table>
+                  <Table.Head>
+                    <Table.HeadCell>Process Id</Table.HeadCell>
+                    <Table.HeadCell>From</Table.HeadCell>
+                    <Table.HeadCell>To</Table.HeadCell>
+                  </Table.Head>
+                  <Table.Body>
+                    {result.loggedValues.map((item, index) => (
+                      <Table.Row key={index}>
+                        <Table.Cell>{item.processId}</Table.Cell>
+                        <Table.Cell className="font-bold">
+                          {item.from}
+                        </Table.Cell>
+                        <Table.Cell className="font-bold">{item.to}</Table.Cell>
+                      </Table.Row>
+                    ))}
+                  </Table.Body>
+                </Table>
+              </div>
+
+              <div className="w-96">
+                <input
+                  placeholder="1231"
+                  value={timerValue}
+                  onChange={(e) => setTimerValue(Number(e.target.value))}
+                  min={0}
+                  max={result.totalTime}
+                  type="range"
+                  className="w-80 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                />
+                <div className="bg-gray-900 p-5 rounded-lg border border-gray-600 text-gray-100 mt-10 shadow">
+                  <p>Second: {timerValue}</p>
+                  <div>
+                    <div>data: </div>
+                    <div className="mt-5">
+                      {result.events
+                        .filter((key) => key.time === timerValue)
+                        .map((event) => (
+                          <div className="flex items-center">
+                            <span className="ml-3">
+                              {!!event.task && "Process: "}
+                              {event.task?.processId}
+                            </span>
+                            <strong>
+                              {(objColors as any)[event.eventName]}
+                            </strong>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+          <Card className="my-10">
+            <h3 className="dark:text-gray-300">Algorithm Summary</h3>
+            <div className="mt-4"></div>
           </Card>
           <Card className="my-10 dark:text-gray-300">
             <h3 className="font-bold">🛑Analyzing the Processes</h3>
